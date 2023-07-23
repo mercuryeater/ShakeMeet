@@ -60,8 +60,6 @@ function App() {
   };
 
   const handleCreateCall = async () => {
-    // Listen for local ICE candidates on the local RTCPeerConnection
-
     //creamos la offer del caller
     const offerDescription = await peerConnection.createOffer(); //Aca va la RTCSessionDescription
     const offer = {
@@ -80,7 +78,6 @@ function App() {
         try {
           //Agregar candidato a offerCandidates en la db
           editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
-          console.log("Funciona el listener de OfferCandidates");
         } catch (error) {
           console.error("Error adding offerCandidate to db: " + error);
         }
@@ -90,7 +87,6 @@ function App() {
     // cada vez que cambia el documento con el id x entonces:
     const unsub = onSnapshot(doc(db, "calls", serverCallID), async (doc) => {
       const currentCall = doc.data();
-      console.log("🚀 ~ file: App.jsx:92 ~ unsub ~ currentCall:", currentCall);
 
       try {
         if (currentCall.answer && !peerConnection.remoteDescription) {
@@ -103,8 +99,13 @@ function App() {
         console.error("Error adding remoteDescription: " + error);
       }
 
-      if (currentCall.answerCandidates && !peerConnection.remoteDescription) {
+      if (currentCall.answerCandidates) {
         console.log(`esto es AnswerCandidates${currentCall.answerCandidates}`);
+        peerConnection
+          .addIceCandidate(currentCall.answerCandidates)
+          .catch((error) => {
+            console.error("Failed to add ICE candidate: ", error);
+          });
       }
     });
 
@@ -126,6 +127,10 @@ function App() {
         `ICE gathering state changed: ${peerConnection.iceGatheringState}`
       );
     });
+
+    peerConnection.addEventListener("signalingstatechange", () => {
+      console.log("Signaling State: " + peerConnection.signalingState);
+    });
   };
 
   const handleInputChange = (event) => {
@@ -135,12 +140,10 @@ function App() {
 
   const joinCallHandler = async () => {
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
-    //Aqui se establecen las peerConnection remota y local
 
-    //la local es medio copiar lo que hay en crear llamada
+    //ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
     const unsub = onSnapshot(doc(db, "calls", remoteCallID), async (doc) => {
       const currentCall = doc.data();
-      console.log("🚀 ~ file: App.jsx:92 ~ unsub ~ currentCall:", currentCall);
 
       if (currentCall.offer && !peerConnection.remoteDescription) {
         const remoteDescription = new RTCSessionDescription(currentCall.offer);
@@ -154,8 +157,13 @@ function App() {
         });
       }
 
-      if (currentCall.offerCandidates && !peerConnection.remoteDescription) {
-        console.log(`esto es AnswerCandidates${currentCall.answerCandidates}`);
+      if (currentCall.offerCandidates) {
+        console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
+        peerConnection
+          .addIceCandidate(currentCall.offerCandidates)
+          .catch((error) => {
+            console.error("Failed to add ICE candidate: ", error);
+          });
       }
     });
 
@@ -167,7 +175,9 @@ function App() {
         );
         try {
           //Agregar candidato a offerCandidates en la db
-          editCall(remoteCallID, { aswerCandidates: event.candidate.toJSON() });
+          editCall(remoteCallID, {
+            answerCandidates: event.candidate.toJSON(),
+          });
           console.log("Funciona el listener de AnswerCandidates");
         } catch (error) {
           console.error("Error adding answerCandidates to db: " + error);
@@ -193,6 +203,10 @@ function App() {
         `ICE gathering state changed: ${peerConnection.iceGatheringState}`
       );
     });
+
+    peerConnection.addEventListener("signalingstatechange", () => {
+      console.log("Signaling State: " + peerConnection.signalingState);
+    });
   };
 
   const printRTCDescriptions = () => {
@@ -200,6 +214,10 @@ function App() {
       `localRTC: ${peerConnection.localDescription.type}${peerConnection.localDescription.sdp}  
       and remoteRTC: ${peerConnection.remoteDescription.type}${peerConnection.remoteDescription.sdp}`
     );
+  };
+
+  const printRTCState = () => {
+    console.log(`State peerConecction: ${peerConnection.connectionState}`);
   };
 
   return (
@@ -229,6 +247,7 @@ function App() {
       <input type="text" onChange={handleInputChange} />
       <button onClick={joinCallHandler}>Join Call</button>
       <button onClick={printRTCDescriptions}>printRTCDescriptions</button>
+      <button onClick={printRTCState}>printRTC State</button>
       {/* <h2>4. Hangup</h2>
 
       <button id="hangupButton" disabled>
