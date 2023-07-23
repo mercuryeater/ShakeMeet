@@ -3,8 +3,6 @@ import {
   getFirestore,
   collection,
   getDocs,
-  setDoc,
-  getDoc,
   addDoc,
   doc,
   updateDoc,
@@ -15,7 +13,7 @@ import { getAnalytics } from "firebase/analytics";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBXRA_-eQVL7pj8aEQXF8VQEoTxqI8qEWg",
+  apiKey: import.meta.env.VITE_BASE_API_KEY,
   authDomain: "testp2p-39de4.firebaseapp.com",
   databaseURL: "https://testp2p-39de4-default-rtdb.firebaseio.com",
   projectId: "testp2p-39de4",
