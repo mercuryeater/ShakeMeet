@@ -1,9 +1,11 @@
 function Header() {
   return (
-    <>
-      <h2>Hola</h2>
-      <h2>Mundo</h2>
-    </>
+    <header className="bg-gray-600">
+      <img src="" alt="" />
+      <p className="text-blue-200">Sign In</p>
+      <p className="text-blue-200">About Us</p>
+      <p className="text-blue-200">You have a new message!</p>
+    </header>
   );
 }
 

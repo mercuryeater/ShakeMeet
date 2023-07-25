@@ -6,7 +6,7 @@ function App() {
   return (
     <>
       <Home />
-      <h2>.</h2>
+      <h2 className="text-red-600">.</h2>
     </>
   );
 }
