@@ -2,8 +2,8 @@ import logoHand from '../../assets/handshake3.png';
 
 function Header() {
   return (
-    <header className="relative flex items-center justify-between px-6 py-3">
-      <div className="absolute  inset-0 -m-2 -mx-10 -mt-7 flex items-center justify-center bg-gray-400 opacity-20 blur-md" />
+    <header className="relative mb-10 flex items-center justify-between px-6 py-3">
+      <div className="absolute  inset-0 -my-2 -mt-7 flex items-center justify-center bg-gray-400 opacity-20 blur-md" />
       <div className="flex cursor-pointer items-center gap-3 hover:scale-105">
         <img
           src={logoHand}
