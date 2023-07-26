@@ -1,4 +1,3 @@
-import PeerToPeer from './components/PeerToPeer';
 import Home from './pages/Home';
 
 function App() {
