@@ -1,65 +1,25 @@
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { editCall, addToCalls, db } from '../firebase/firebase';
-
-const servers = {
-  iceServers: [
-    {
-      urls: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stunserver.org:3478',
-      ],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
-// Creamos el peerConnection
-const peerConnection = new RTCPeerConnection(servers); // genera los ICE candidates
-
-let localStream = null;
-
-let remoteStream = null;
+import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
   const [callID, setCallID] = useState(null);
   const [remoteCallID, setRemoteCallID] = useState();
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
+  const peerConnectionRef = useRef();
+  const localStreamRef = useRef();
+  const remoteStreamRef = useRef();
 
-  let localIceCandidates = [];
-
-  const startUserCamera = async () => {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true },
-      video: true,
-    });
-
-    localVideoRef.current.srcObject = localStream;
-    localVideoRef.current.play();
-
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
-    });
-
-    remoteStream = new MediaStream();
-
-    peerConnection.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
-
-    remoteVideoRef.current.srcObject = remoteStream;
-    remoteVideoRef.current.play();
-  };
+  const localIceCandidates = [];
 
   useEffect(() => {
-    startUserCamera();
+    startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
   }, []);
 
   const handleCreateCall = async () => {
+    const peerConnection = peerConnectionRef.current;
     // creamos la offer del caller
     const offerDescription = await peerConnection.createOffer(); // Aca va la RTCSessionDescription
     const offer = {
@@ -153,6 +113,7 @@ function PeerToPeer() {
   };
 
   const joinCallHandler = async () => {
+    const peerConnection = peerConnectionRef.current;
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
 
     // ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
