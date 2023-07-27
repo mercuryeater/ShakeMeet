@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { editCall, addToCalls, db } from '../firebase/firebase';
+import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
 import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
@@ -17,6 +17,9 @@ function PeerToPeer() {
   useEffect(() => {
     startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
   }, []);
+
+  ////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////
 
   const handleCreateCall = async () => {
     const peerConnection = peerConnectionRef.current;
@@ -35,20 +38,14 @@ function PeerToPeer() {
 
     peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
-        // try {
-        //   // Agregar candidato a offerCandidates en la db
-        //   editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
-        // } catch (error) {
-        //   console.error(`Error adding offerCandidate to db: ${error}`);
-        // }
-
+        console.log(event.candidate);
         try {
           localIceCandidates.push(event.candidate.toJSON());
+          // Agregar candidato a offerCandidates en la db
+          editCall(serverCallID, { offerCandidates: localIceCandidates });
         } catch (error) {
           console.error(`Error adding offerCandidate to db: ${error}`);
         }
-      } else {
-        editCall(serverCallID, localIceCandidates);
       }
     });
 
@@ -69,14 +66,11 @@ function PeerToPeer() {
 
       try {
         if (currentCall.answerCandidates) {
-          console.log(
-            `esto es AnswerCandidates${currentCall.answerCandidates}`
-          );
-          peerConnection
-            .addIceCandidate(currentCall.answerCandidates)
-            .catch((error) => {
+          currentCall.answerCandidates.forEach((candidate) => {
+            peerConnection.addIceCandidate(candidate).catch((error) => {
               console.error('Failed to add ICE candidate: ', error);
             });
+          });
         }
       } catch (error) {
         console.error(`Error adding IceCandidate: ${error}`);
@@ -112,9 +106,34 @@ function PeerToPeer() {
     console.log(remoteCallID);
   };
 
+  ////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////
   const joinCallHandler = async () => {
     const peerConnection = peerConnectionRef.current;
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
+
+    try {
+      //traer documento para leer aqui el remote
+      const currentCall = await getCall(remoteCallID);
+      const remoteDescription = new RTCSessionDescription(currentCall.offer);
+      await peerConnection.setRemoteDescription(remoteDescription);
+    } catch (error) {
+      console.log('Error adding remoteDescription:', error);
+    }
+
+    try {
+      const answerDescription = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answerDescription);
+
+      editCall(remoteCallID, {
+        answer: {
+          sdp: answerDescription.sdp,
+          type: answerDescription.type,
+        },
+      });
+    } catch (error) {
+      console.log('Error receiving offer or creating answer :', error);
+    }
 
     // ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
     const unsub = onSnapshot(
@@ -126,45 +145,44 @@ function PeerToPeer() {
           currentCall
         );
 
-        try {
-          const remoteDescription = new RTCSessionDescription(
-            currentCall.offer
-          );
-          await peerConnection.setRemoteDescription(remoteDescription);
-        } catch (error) {
-          console.log('Error adding remoteDescription:', error);
-        }
+        // try {
+        //   const remoteDescription = new RTCSessionDescription(
+        //     currentCall.offer
+        //   );
+        //   await peerConnection.setRemoteDescription(remoteDescription);
+        // } catch (error) {
+        //   console.log('Error adding remoteDescription:', error);
+        // }
 
-        try {
-          if (!currentCall.answer) {
-            const answerDescription = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answerDescription);
+        // try {
+        //   if (!currentCall.answer) {
+        //     const answerDescription = await peerConnection.createAnswer();
+        //     await peerConnection.setLocalDescription(answerDescription);
 
-            editCall(remoteCallID, {
-              answer: {
-                sdp: answerDescription.sdp,
-                type: answerDescription.type,
-              },
-            });
-          }
-        } catch (error) {
-          console.log('Error receiving offer or creating answer :', error);
-        }
+        //     editCall(remoteCallID, {
+        //       answer: {
+        //         sdp: answerDescription.sdp,
+        //         type: answerDescription.type,
+        //       },
+        //     });
+        //   }
+        // } catch (error) {
+        //   console.log('Error receiving offer or creating answer :', error);
+        // }
+
+        // if (currentCall.offerCandidates) {
+        //   // peerConnection
+        //   //   .addIceCandidate(currentCall.offerCandidates)
+        //   //   .catch((error) => {
+        //   //     console.error('Failed to add ICE candidate: ', error);
+        //   //   });
 
         if (currentCall.offerCandidates) {
-          // console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
-          // peerConnection
-          //   .addIceCandidate(currentCall.offerCandidates)
-          //   .catch((error) => {
-          //     console.error('Failed to add ICE candidate: ', error);
-          //   });
-          if (currentCall.offerCandidates) {
-            currentCall.offerCandidates.forEach((candidate) => {
-              peerConnection.addIceCandidate(candidate).catch((error) => {
-                console.error('Failed to add ICE candidate: ', error);
-              });
+          currentCall.offerCandidates.forEach((candidate) => {
+            peerConnection.addIceCandidate(candidate).catch((error) => {
+              console.error('Failed to add ICE candidate: ', error);
             });
-          }
+          });
         }
       }
     );
@@ -172,12 +190,11 @@ function PeerToPeer() {
     peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
         try {
+          localIceCandidates.push(event.candidate.toJSON());
           // Agregar candidato a offerCandidates en la db
-          editCall(remoteCallID, {
-            answerCandidates: event.candidate.toJSON(),
-          });
+          editCall(remoteCallID, { answerCandidates: localIceCandidates });
         } catch (error) {
-          console.error(`Error adding answerCandidates to db: ${error}`);
+          console.error(`Error adding offerCandidate to db: ${error}`);
         }
       }
     });
@@ -208,13 +225,15 @@ function PeerToPeer() {
 
   const printRTCDescriptions = () => {
     console.log(
-      `localRTC: ${peerConnection.localDescription.type}${peerConnection.localDescription.sdp}
-      and remoteRTC: ${peerConnection.remoteDescription.type}${peerConnection.remoteDescription.sdp}`
+      `localRTC: ${peerConnectionRef.current.localDescription.type}${peerConnectionRef.localDescription.sdp}
+      and remoteRTC: ${peerConnectionRef.current.remoteDescription.type}${peerConnectionRef.remoteDescription.sdp}`
     );
   };
 
   const printRTCState = () => {
-    console.log(`State peerConecction: ${peerConnection.connectionState}`);
+    console.log(
+      `State peerConecction: ${peerConnectionRef.current.connectionState}`
+    );
   };
 
   return (

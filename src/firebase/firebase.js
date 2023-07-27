@@ -1,25 +1,26 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp } from 'firebase/app';
 import {
   getFirestore,
   collection,
   getDocs,
+  getDoc,
   addDoc,
   doc,
   updateDoc,
   onSnapshot,
-} from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+} from 'firebase/firestore';
+import { getAnalytics } from 'firebase/analytics';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_BASE_API_KEY,
-  authDomain: "testp2p-39de4.firebaseapp.com",
-  databaseURL: "https://testp2p-39de4-default-rtdb.firebaseio.com",
-  projectId: "testp2p-39de4",
-  storageBucket: "testp2p-39de4.appspot.com",
-  messagingSenderId: "1035623282363",
-  appId: "1:1035623282363:web:ac210588b6ee22ebe81b9e",
+  authDomain: 'testp2p-39de4.firebaseapp.com',
+  databaseURL: 'https://testp2p-39de4-default-rtdb.firebaseio.com',
+  projectId: 'testp2p-39de4',
+  storageBucket: 'testp2p-39de4.appspot.com',
+  messagingSenderId: '1035623282363',
+  appId: '1:1035623282363:web:ac210588b6ee22ebe81b9e',
 };
 
 // Initialize Firebase
@@ -33,42 +34,41 @@ export function getCollection(collectionName) {
   return collection(db, collectionName);
 }
 
-export async function getCalls() {
-  const callsRef = getCollection("calls");
-  const snapshot = await getDocs(callsRef);
+export async function getCall(CALLID) {
+  const callsRef = doc(db, 'calls', CALLID);
+  const docSnap = await getDoc(callsRef);
 
-  //POR QUE ACA NO ME IMPRIME EL OBJETO?
-  const callList = snapshot.docs.map((doc) => {
-    return {
-      id: doc.id,
-      ...doc.data(),
-    };
-  });
-  return callList;
+  if (docSnap.exists()) {
+    console.log('Document data:', docSnap.data());
+    return docSnap.data();
+  } else {
+    // docSnap.data() will be undefined in this case
+    console.log('No such document!');
+  }
 }
 
 export async function addToCalls(data) {
-  const callsRef = getCollection("calls");
+  const callsRef = getCollection('calls');
 
   try {
     const addedToCalls = await addDoc(callsRef, data);
-    console.log("Document written with ID: ", addedToCalls.id);
+    console.log('Document written with ID: ', addedToCalls.id);
     return addedToCalls.id;
   } catch (error) {
-    console.error("Error adding document: ", error);
+    console.error('Error adding document: ', error);
   }
 }
 
 export async function editCall(callID, editData) {
-  const callsRef = getCollection("calls");
+  const callsRef = getCollection('calls');
   try {
     const specificCallRef = await updateDoc(doc(callsRef, callID), {
       ...editData,
     });
 
-    console.log("Document edited with ID: ", callID);
+    console.log('Document edited with ID: ', callID);
   } catch (error) {
-    console.error("Error editing document: ", error);
+    console.error('Error editing document: ', error);
   }
 }
 
@@ -82,7 +82,7 @@ export async function editCall(callID, editData) {
 // }
 
 export async function snapshotCall(callID) {
-  const callsRef = getCollection("calls");
+  const callsRef = getCollection('calls');
 
   return new Promise((resolve, reject) => {
     const unsubscribe = onSnapshot(doc(callsRef, callID), (doc) => {
@@ -90,7 +90,7 @@ export async function snapshotCall(callID) {
         const data = doc.data();
         resolve(data); // Resuelve la promesa con los datos del documento
       } else {
-        reject(new Error("El documento no existe."));
+        reject(new Error('El documento no existe.'));
       }
     });
   });
