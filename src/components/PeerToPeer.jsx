@@ -208,13 +208,15 @@ function PeerToPeer() {
 
   const printRTCDescriptions = () => {
     console.log(
-      `localRTC: ${peerConnection.localDescription.type}${peerConnection.localDescription.sdp}
-      and remoteRTC: ${peerConnection.remoteDescription.type}${peerConnection.remoteDescription.sdp}`
+      `localRTC: ${peerConnectionRef.current.localDescription.type}${peerConnectionRef.localDescription.sdp}
+      and remoteRTC: ${peerConnectionRef.current.remoteDescription.type}${peerConnectionRef.remoteDescription.sdp}`
     );
   };
 
   const printRTCState = () => {
-    console.log(`State peerConecction: ${peerConnection.connectionState}`);
+    console.log(
+      `State peerConecction: ${peerConnectionRef.current.connectionState}`
+    );
   };
 
   return (
