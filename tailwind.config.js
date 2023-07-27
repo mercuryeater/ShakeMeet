@@ -6,6 +6,11 @@ export default {
       fontFamily: {
         sans: ['Darker Grotesque'],
       },
+      colors: {
+        primary: {
+          100: '#c0d6df',
+        },
+      },
     },
   },
   plugins: [],

@@ -1,22 +1,22 @@
-import { useRef, useState } from "react";
-import { editCall, addToCalls, db } from "../firebase/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { useRef, useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { editCall, addToCalls, db } from '../firebase/firebase';
 
 const servers = {
   iceServers: [
     {
       urls: [
-        "stun:stun.l.google.com:19302",
-        "stun:stun1.l.google.com:19302",
-        "stun:stunserver.org:3478",
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stunserver.org:3478',
       ],
     },
   ],
   iceCandidatePoolSize: 10,
 };
 
-//Creamos el peerConnection
-const peerConnection = new RTCPeerConnection(servers); //genera los ICE candidates
+// Creamos el peerConnection
+const peerConnection = new RTCPeerConnection(servers); // genera los ICE candidates
 
 let localStream = null;
 
@@ -27,10 +27,6 @@ function PeerToPeer() {
   const [remoteCallID, setRemoteCallID] = useState();
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
-
-  const handleWebcam = () => {
-    startUserCamera();
-  };
 
   const startUserCamera = async () => {
     localStream = await navigator.mediaDevices.getUserMedia({
@@ -57,33 +53,37 @@ function PeerToPeer() {
     remoteVideoRef.current.play();
   };
 
+  useEffect(() => {
+    startUserCamera();
+  }, []);
+
   const handleCreateCall = async () => {
-    //creamos la offer del caller
-    const offerDescription = await peerConnection.createOffer(); //Aca va la RTCSessionDescription
+    // creamos la offer del caller
+    const offerDescription = await peerConnection.createOffer(); // Aca va la RTCSessionDescription
     const offer = {
       offer: { sdp: offerDescription.sdp, type: offerDescription.type },
       createdAt: Date.now(),
     };
 
-    //Crear el documento de la llamada
+    // Crear el documento de la llamada
     const serverCallID = await addToCalls(offer);
     setCallID(serverCallID);
 
-    await peerConnection.setLocalDescription(offerDescription); //aca va el SDP
+    await peerConnection.setLocalDescription(offerDescription); // aca va el SDP
 
-    peerConnection.addEventListener("icecandidate", (event) => {
+    peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
         try {
-          //Agregar candidato a offerCandidates en la db
+          // Agregar candidato a offerCandidates en la db
           editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
         } catch (error) {
-          console.error("Error adding offerCandidate to db: " + error);
+          console.error(`Error adding offerCandidate to db: ${error}`);
         }
       }
     });
 
     // cada vez que cambia el documento con el id x entonces:
-    const unsub = onSnapshot(doc(db, "calls", serverCallID), async (doc) => {
+    const unsub = onSnapshot(doc(db, 'calls', serverCallID), async (doc) => {
       const currentCall = doc.data();
 
       try {
@@ -94,40 +94,46 @@ function PeerToPeer() {
           await peerConnection.setRemoteDescription(remoteDescription);
         }
       } catch (error) {
-        console.error("Error adding remoteDescription: " + error);
+        console.error(`Error adding remoteDescription: ${error}`);
       }
 
-      if (currentCall.answerCandidates) {
-        console.log(`esto es AnswerCandidates${currentCall.answerCandidates}`);
-        peerConnection
-          .addIceCandidate(currentCall.answerCandidates)
-          .catch((error) => {
-            console.error("Failed to add ICE candidate: ", error);
-          });
+      try {
+        if (currentCall.answerCandidates) {
+          console.log(
+            `esto es AnswerCandidates${currentCall.answerCandidates}`
+          );
+          peerConnection
+            .addIceCandidate(currentCall.answerCandidates)
+            .catch((error) => {
+              console.error('Failed to add ICE candidate: ', error);
+            });
+        }
+      } catch (error) {
+        console.error(`Error adding IceCandidate: ${error}`);
       }
     });
 
-    peerConnection.addEventListener("iceconnectionstatechange", (event) => {
+    peerConnection.addEventListener('iceconnectionstatechange', (event) => {
       // Este evento se dispara cuando el estado de la conexión ICE cambia.
       console.log(
-        "ICE connection state change:",
+        'ICE connection state change:',
         peerConnection.iceConnectionState
       );
     });
 
-    peerConnection.addEventListener("negotiationneeded", () => {
+    peerConnection.addEventListener('negotiationneeded', () => {
       // Este evento se dispara cuando es necesario realizar una negociación (oferta o respuesta).
-      console.log("Negotiation needed.");
+      console.log('Negotiation needed.');
     });
 
-    peerConnection.addEventListener("icegatheringstatechange", () => {
+    peerConnection.addEventListener('icegatheringstatechange', () => {
       console.log(
         `ICE gathering state changed: ${peerConnection.iceGatheringState}`
       );
     });
 
-    peerConnection.addEventListener("signalingstatechange", () => {
-      console.log("Signaling State: " + peerConnection.signalingState);
+    peerConnection.addEventListener('signalingstatechange', () => {
+      console.log(`Signaling State: ${peerConnection.signalingState}`);
     });
   };
 
@@ -139,77 +145,92 @@ function PeerToPeer() {
   const joinCallHandler = async () => {
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
 
-    //ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
-    const unsub = onSnapshot(doc(db, "calls", remoteCallID), async (doc) => {
-      const currentCall = doc.data();
-
-      if (currentCall.offer && !peerConnection.remoteDescription) {
-        const remoteDescription = new RTCSessionDescription(currentCall.offer);
-        await peerConnection.setRemoteDescription(remoteDescription);
-
-        const answerDescription = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answerDescription);
-
-        editCall(remoteCallID, {
-          answer: { sdp: answerDescription.sdp, type: answerDescription.type },
-        });
-      }
-
-      if (currentCall.offerCandidates) {
-        console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
-        peerConnection
-          .addIceCandidate(currentCall.offerCandidates)
-          .catch((error) => {
-            console.error("Failed to add ICE candidate: ", error);
-          });
-      }
-    });
-
-    peerConnection.addEventListener("icecandidate", (event) => {
-      if (event.candidate) {
+    // ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
+    const unsub = onSnapshot(
+      doc(db, 'calls', remoteCallID),
+      async (document) => {
+        const currentCall = document.data();
         console.log(
-          "🚀 ~ file: App.jsx:75 ~ peerConnection.addEventListener ~ event.candidate:",
-          event.candidate
+          '🚀 ~ file: PeerToPeer.jsx:153 ~ currentCall:',
+          currentCall
         );
+
         try {
-          //Agregar candidato a offerCandidates en la db
+          const remoteDescription = new RTCSessionDescription(
+            currentCall.offer
+          );
+          await peerConnection.setRemoteDescription(remoteDescription);
+        } catch (error) {
+          console.log('Error adding remoteDescription:', error);
+        }
+
+        try {
+          if (!currentCall.answer) {
+            const answerDescription = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answerDescription);
+
+            editCall(remoteCallID, {
+              answer: {
+                sdp: answerDescription.sdp,
+                type: answerDescription.type,
+              },
+            });
+          }
+        } catch (error) {
+          console.log('Error receiving offer or creating answer :', error);
+        }
+
+        if (currentCall.offerCandidates) {
+          console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
+          peerConnection
+            .addIceCandidate(currentCall.offerCandidates)
+            .catch((error) => {
+              console.error('Failed to add ICE candidate: ', error);
+            });
+        }
+      }
+    );
+
+    peerConnection.addEventListener('icecandidate', (event) => {
+      if (event.candidate) {
+        try {
+          // Agregar candidato a offerCandidates en la db
           editCall(remoteCallID, {
             answerCandidates: event.candidate.toJSON(),
           });
-          console.log("Funciona el listener de AnswerCandidates");
         } catch (error) {
-          console.error("Error adding answerCandidates to db: " + error);
+          console.error(`Error adding answerCandidates to db: ${error}`);
         }
       }
     });
 
-    peerConnection.addEventListener("iceconnectionstatechange", (event) => {
+    peerConnection.addEventListener('iceconnectionstatechange', (event) => {
       // Este evento se dispara cuando el estado de la conexión ICE cambia.
       console.log(
-        "ICE connection state change:",
+        'ICE connection state change:',
         peerConnection.iceConnectionState
       );
     });
 
-    peerConnection.addEventListener("negotiationneeded", () => {
+    peerConnection.addEventListener('negotiationneeded', () => {
       // Este evento se dispara cuando es necesario realizar una negociación (oferta o respuesta).
-      console.log("Negotiation needed.");
+      console.log('Negotiation needed.');
     });
 
-    peerConnection.addEventListener("icegatheringstatechange", () => {
+    peerConnection.addEventListener('icegatheringstatechange', () => {
       console.log(
         `ICE gathering state changed: ${peerConnection.iceGatheringState}`
       );
     });
 
-    peerConnection.addEventListener("signalingstatechange", () => {
-      console.log("Signaling State: " + peerConnection.signalingState);
+    peerConnection.addEventListener('signalingstatechange', () => {
+      console.log(`Signaling State: ${peerConnection.signalingState}`);
     });
   };
 
   const printRTCDescriptions = () => {
     console.log(
-      `localRTC: ${peerConnection.localDescription.type}${peerConnection.localDescription.sdp}  
+      `localRTC: ${peerConnection.localDescription.type}${peerConnection.localDescription.sdp}
       and remoteRTC: ${peerConnection.remoteDescription.type}${peerConnection.remoteDescription.sdp}`
     );
   };
@@ -220,19 +241,17 @@ function PeerToPeer() {
 
   return (
     <>
-      <h2>1. Start your Webcam</h2>
-      <div style={{ display: "flex" }}>
+      <div style={{ display: 'flex' }}>
         <span>
           <h3>Local Stream</h3>
-          <video ref={localVideoRef} autoPlay></video>
+          <video ref={localVideoRef} autoPlay />
         </span>
         <span>
           <h3>Remote Stream</h3>
-          <video ref={remoteVideoRef} autoPlay></video>
+          <video ref={remoteVideoRef} autoPlay />
         </span>
       </div>
 
-      <button onClick={handleWebcam}>Start webcam</button>
       <h2>2. Create a new Call</h2>
       <button type="button" onClick={handleCreateCall}>
         Create Call (offer)
@@ -243,9 +262,15 @@ function PeerToPeer() {
 
       <h2>Call ID: {callID}</h2>
       <input type="text" onChange={handleInputChange} />
-      <button onClick={joinCallHandler}>Join Call</button>
-      <button onClick={printRTCDescriptions}>printRTCDescriptions</button>
-      <button onClick={printRTCState}>printRTC State</button>
+      <button type="button" onClick={joinCallHandler}>
+        Join Call
+      </button>
+      <button type="button" onClick={printRTCDescriptions}>
+        printRTCDescriptions
+      </button>
+      <button type="button" onClick={printRTCState}>
+        printRTC State
+      </button>
     </>
   );
 }
