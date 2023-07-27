@@ -35,20 +35,20 @@ function PeerToPeer() {
 
     peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
-        // try {
-        //   // Agregar candidato a offerCandidates en la db
-        //   editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
-        // } catch (error) {
-        //   console.error(`Error adding offerCandidate to db: ${error}`);
-        // }
-
         try {
-          localIceCandidates.push(event.candidate.toJSON());
+          // Agregar candidato a offerCandidates en la db
+          editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
         } catch (error) {
           console.error(`Error adding offerCandidate to db: ${error}`);
         }
-      } else {
-        editCall(serverCallID, localIceCandidates);
+
+        //   try {
+        //     localIceCandidates.push(event.candidate.toJSON());
+        //   } catch (error) {
+        //     console.error(`Error adding offerCandidate to db: ${error}`);
+        //   }
+        // } else {
+        //   editCall(serverCallID, localIceCandidates);
       }
     });
 
@@ -152,19 +152,19 @@ function PeerToPeer() {
         }
 
         if (currentCall.offerCandidates) {
-          // console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
-          // peerConnection
-          //   .addIceCandidate(currentCall.offerCandidates)
-          //   .catch((error) => {
-          //     console.error('Failed to add ICE candidate: ', error);
-          //   });
-          if (currentCall.offerCandidates) {
-            currentCall.offerCandidates.forEach((candidate) => {
-              peerConnection.addIceCandidate(candidate).catch((error) => {
-                console.error('Failed to add ICE candidate: ', error);
-              });
+          console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
+          peerConnection
+            .addIceCandidate(currentCall.offerCandidates)
+            .catch((error) => {
+              console.error('Failed to add ICE candidate: ', error);
             });
-          }
+          // if (currentCall.offerCandidates) {
+          //   currentCall.offerCandidates.forEach((candidate) => {
+          //     peerConnection.addIceCandidate(candidate).catch((error) => {
+          //       console.error('Failed to add ICE candidate: ', error);
+          //     });
+          //   });
+          // }
         }
       }
     );
