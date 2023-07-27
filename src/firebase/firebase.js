@@ -3,6 +3,7 @@ import {
   getFirestore,
   collection,
   getDocs,
+  getDoc,
   addDoc,
   doc,
   updateDoc,
@@ -33,18 +34,17 @@ export function getCollection(collectionName) {
   return collection(db, collectionName);
 }
 
-export async function getCalls() {
-  const callsRef = getCollection('calls');
-  const snapshot = await getDocs(callsRef);
+export async function getCall(CALLID) {
+  const callsRef = doc(db, 'calls', CALLID);
+  const docSnap = await getDoc(callsRef);
 
-  //POR QUE ACA NO ME IMPRIME EL OBJETO?
-  const callList = snapshot.docs.map((doc) => {
-    return {
-      id: doc.id,
-      ...doc.data(),
-    };
-  });
-  return callList;
+  if (docSnap.exists()) {
+    console.log('Document data:', docSnap.data());
+    return docSnap.data();
+  } else {
+    // docSnap.data() will be undefined in this case
+    console.log('No such document!');
+  }
 }
 
 export async function addToCalls(data) {

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { editCall, addToCalls, db } from '../firebase/firebase';
+import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
 import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
@@ -112,6 +112,29 @@ function PeerToPeer() {
     const peerConnection = peerConnectionRef.current;
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
 
+    try {
+      //traer documento para leer aqui el remote
+      const currentCall = await getCall(remoteCallID);
+      const remoteDescription = new RTCSessionDescription(currentCall.offer);
+      await peerConnection.setRemoteDescription(remoteDescription);
+    } catch (error) {
+      console.log('Error adding remoteDescription:', error);
+    }
+
+    try {
+      const answerDescription = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answerDescription);
+
+      editCall(remoteCallID, {
+        answer: {
+          sdp: answerDescription.sdp,
+          type: answerDescription.type,
+        },
+      });
+    } catch (error) {
+      console.log('Error receiving offer or creating answer :', error);
+    }
+
     // ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
     const unsub = onSnapshot(
       doc(db, 'calls', remoteCallID),
@@ -122,30 +145,30 @@ function PeerToPeer() {
           currentCall
         );
 
-        try {
-          const remoteDescription = new RTCSessionDescription(
-            currentCall.offer
-          );
-          await peerConnection.setRemoteDescription(remoteDescription);
-        } catch (error) {
-          console.log('Error adding remoteDescription:', error);
-        }
+        // try {
+        //   const remoteDescription = new RTCSessionDescription(
+        //     currentCall.offer
+        //   );
+        //   await peerConnection.setRemoteDescription(remoteDescription);
+        // } catch (error) {
+        //   console.log('Error adding remoteDescription:', error);
+        // }
 
-        try {
-          if (!currentCall.answer) {
-            const answerDescription = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answerDescription);
+        // try {
+        //   if (!currentCall.answer) {
+        //     const answerDescription = await peerConnection.createAnswer();
+        //     await peerConnection.setLocalDescription(answerDescription);
 
-            editCall(remoteCallID, {
-              answer: {
-                sdp: answerDescription.sdp,
-                type: answerDescription.type,
-              },
-            });
-          }
-        } catch (error) {
-          console.log('Error receiving offer or creating answer :', error);
-        }
+        //     editCall(remoteCallID, {
+        //       answer: {
+        //         sdp: answerDescription.sdp,
+        //         type: answerDescription.type,
+        //       },
+        //     });
+        //   }
+        // } catch (error) {
+        //   console.log('Error receiving offer or creating answer :', error);
+        // }
 
         // if (currentCall.offerCandidates) {
         //   // peerConnection
