@@ -1,63 +1,25 @@
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { editCall, addToCalls, db } from '../firebase/firebase';
-
-const servers = {
-  iceServers: [
-    {
-      urls: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stunserver.org:3478',
-      ],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
-// Creamos el peerConnection
-const peerConnection = new RTCPeerConnection(servers); // genera los ICE candidates
-
-let localStream = null;
-
-let remoteStream = null;
+import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
   const [callID, setCallID] = useState(null);
   const [remoteCallID, setRemoteCallID] = useState();
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
+  const peerConnectionRef = useRef();
+  const localStreamRef = useRef();
+  const remoteStreamRef = useRef();
 
-  const startUserCamera = async () => {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true },
-      video: true,
-    });
-
-    localVideoRef.current.srcObject = localStream;
-    localVideoRef.current.play();
-
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
-    });
-
-    remoteStream = new MediaStream();
-
-    peerConnection.ontrack = (event) => {
-      event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
-      });
-    };
-
-    remoteVideoRef.current.srcObject = remoteStream;
-    remoteVideoRef.current.play();
-  };
+  const localIceCandidates = [];
 
   useEffect(() => {
-    startUserCamera();
+    startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
   }, []);
 
   const handleCreateCall = async () => {
+    const peerConnection = peerConnectionRef.current;
     // creamos la offer del caller
     const offerDescription = await peerConnection.createOffer(); // Aca va la RTCSessionDescription
     const offer = {
@@ -73,12 +35,20 @@ function PeerToPeer() {
 
     peerConnection.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
+        // try {
+        //   // Agregar candidato a offerCandidates en la db
+        //   editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
+        // } catch (error) {
+        //   console.error(`Error adding offerCandidate to db: ${error}`);
+        // }
+
         try {
-          // Agregar candidato a offerCandidates en la db
-          editCall(serverCallID, { offerCandidates: event.candidate.toJSON() });
+          localIceCandidates.push(event.candidate.toJSON());
         } catch (error) {
           console.error(`Error adding offerCandidate to db: ${error}`);
         }
+      } else {
+        editCall(serverCallID, localIceCandidates);
       }
     });
 
@@ -143,6 +113,7 @@ function PeerToPeer() {
   };
 
   const joinCallHandler = async () => {
+    const peerConnection = peerConnectionRef.current;
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
 
     // ESTE ES EL SNAPSHOT QUE SE DISPARA CUANDO LA LLAMADA CAMBIA
@@ -181,12 +152,19 @@ function PeerToPeer() {
         }
 
         if (currentCall.offerCandidates) {
-          console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
-          peerConnection
-            .addIceCandidate(currentCall.offerCandidates)
-            .catch((error) => {
-              console.error('Failed to add ICE candidate: ', error);
+          // console.log(`esto es offerCandidates${currentCall.offerCandidates}`);
+          // peerConnection
+          //   .addIceCandidate(currentCall.offerCandidates)
+          //   .catch((error) => {
+          //     console.error('Failed to add ICE candidate: ', error);
+          //   });
+          if (currentCall.offerCandidates) {
+            currentCall.offerCandidates.forEach((candidate) => {
+              peerConnection.addIceCandidate(candidate).catch((error) => {
+                console.error('Failed to add ICE candidate: ', error);
+              });
             });
+          }
         }
       }
     );
