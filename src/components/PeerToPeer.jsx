@@ -2,12 +2,14 @@ import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
 import InitiateCall from './Call/InitiateCall/InitiateCall';
+import InputJoinCall from './Call/InputJoinCall/InputJoinCall';
 import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
   const [callID, setCallID] = useState(null);
   const [remoteCallID, setRemoteCallID] = useState();
   const [showInitiateCall, setShowInitiateCall] = useState(true);
+  const [showInputJoinCall, setShowInputJoinCall] = useState(true);
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
   const peerConnectionRef = useRef();
@@ -129,6 +131,10 @@ function PeerToPeer() {
       console.log('Error adding remoteDescription:', error);
     }
 
+    if (peerConnection.remoteDescription) {
+      setShowInputJoinCall(false);
+    }
+
     try {
       const answerDescription = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answerDescription);
@@ -229,13 +235,13 @@ function PeerToPeer() {
       ) : null}
       <h2 className="text-left text-lg text-white ">Call ID: {callID}</h2>
       <h2>3. Join a Call</h2>
-      <p>Answer the call from a different browser window or device</p>
 
-      <h2>Call ID: {callID}</h2>
-      <input type="text" onChange={handleInputChange} />
-      <button type="button" onClick={joinCallHandler}>
-        Join Call
-      </button>
+      {role === 'callee' && showInputJoinCall ? (
+        <InputJoinCall
+          joinCall={joinCallHandler}
+          setRemoteCallID={setRemoteCallID}
+        />
+      ) : null}
       {/* <button type="button" onClick={printRTCDescriptions}>
         printRTCDescriptions
       </button>

@@ -1,24 +1,23 @@
 import { Link } from 'react-router-dom';
 
-function InitiateCall({ callID, createCall }) {
-  const handleCreateCall = () => {
-    createCall();
-  };
+function InitiateCall({ createCall }) {
   return (
     <div
       className="absolute inset-0 z-10  flex flex-col
-      items-center justify-center p-10 drop-shadow-lg backdrop-blur-sm gap-5"
+      items-center justify-center gap-5 p-10 drop-shadow-lg backdrop-blur-sm"
     >
       <button
         type="button"
         className="rounded-2xl bg-gradient-to-b from-pink-300 via-purple-300 to-indigo-400 px-3
         py-2 text-lg font-semibold transition-all hover:scale-105 hover:text-gray-200 active:scale-95
         active:text-gray-400 active:opacity-80"
-        onClick={handleCreateCall}
+        onClick={() => {
+          createCall();
+        }}
       >
-        Initiate Call
+        CALL
       </button>
-      <h1>or</h1>
+      <h1 className="text-xl text-sky-100">or</h1>
       <Link to="/">
         <button
           type="button"
