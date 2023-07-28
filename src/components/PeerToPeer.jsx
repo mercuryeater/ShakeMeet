@@ -1,11 +1,13 @@
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
+import InitiateCall from './Call/InitiateCall/InitiateCall';
 import startUserCamera from '../utils/camera';
 
 function PeerToPeer() {
   const [callID, setCallID] = useState(null);
   const [remoteCallID, setRemoteCallID] = useState();
+  const [showInitiateCall, setShowInitiateCall] = useState(true);
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
   const peerConnectionRef = useRef();
@@ -13,6 +15,8 @@ function PeerToPeer() {
   const remoteStreamRef = useRef();
 
   const localIceCandidates = [];
+
+  const role = localStorage.getItem('role');
 
   useEffect(() => {
     startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
@@ -33,6 +37,10 @@ function PeerToPeer() {
     // Crear el documento de la llamada
     const serverCallID = await addToCalls(offer);
     setCallID(serverCallID);
+
+    if (serverCallID) {
+      setShowInitiateCall(false);
+    }
 
     await peerConnection.setLocalDescription(offerDescription); // aca va el SDP
 
@@ -145,38 +153,6 @@ function PeerToPeer() {
           currentCall
         );
 
-        // try {
-        //   const remoteDescription = new RTCSessionDescription(
-        //     currentCall.offer
-        //   );
-        //   await peerConnection.setRemoteDescription(remoteDescription);
-        // } catch (error) {
-        //   console.log('Error adding remoteDescription:', error);
-        // }
-
-        // try {
-        //   if (!currentCall.answer) {
-        //     const answerDescription = await peerConnection.createAnswer();
-        //     await peerConnection.setLocalDescription(answerDescription);
-
-        //     editCall(remoteCallID, {
-        //       answer: {
-        //         sdp: answerDescription.sdp,
-        //         type: answerDescription.type,
-        //       },
-        //     });
-        //   }
-        // } catch (error) {
-        //   console.log('Error receiving offer or creating answer :', error);
-        // }
-
-        // if (currentCall.offerCandidates) {
-        //   // peerConnection
-        //   //   .addIceCandidate(currentCall.offerCandidates)
-        //   //   .catch((error) => {
-        //   //     console.error('Failed to add ICE candidate: ', error);
-        //   //   });
-
         if (currentCall.offerCandidates) {
           currentCall.offerCandidates.forEach((candidate) => {
             peerConnection.addIceCandidate(candidate).catch((error) => {
@@ -240,20 +216,18 @@ function PeerToPeer() {
     <>
       <div style={{ display: 'flex' }}>
         <span>
-          <h3>Local Stream</h3>
+          <h3 className="text-lg text-white">Local Stream</h3>
           <video ref={localVideoRef} autoPlay />
         </span>
         <span>
-          <h3>Remote Stream</h3>
+          <h3 className="text-lg text-white">Remote Stream</h3>
           <video ref={remoteVideoRef} autoPlay />
         </span>
       </div>
-
-      <h2>2. Create a new Call</h2>
-      <button type="button" onClick={handleCreateCall}>
-        Create Call (offer)
-      </button>
-
+      {role === 'caller' && showInitiateCall ? (
+        <InitiateCall callID={callID} createCall={handleCreateCall} />
+      ) : null}
+      <h2 className="text-left text-lg text-white ">Call ID: {callID}</h2>
       <h2>3. Join a Call</h2>
       <p>Answer the call from a different browser window or device</p>
 
@@ -262,12 +236,12 @@ function PeerToPeer() {
       <button type="button" onClick={joinCallHandler}>
         Join Call
       </button>
-      <button type="button" onClick={printRTCDescriptions}>
+      {/* <button type="button" onClick={printRTCDescriptions}>
         printRTCDescriptions
       </button>
       <button type="button" onClick={printRTCState}>
         printRTC State
-      </button>
+      </button> */}
     </>
   );
 }
