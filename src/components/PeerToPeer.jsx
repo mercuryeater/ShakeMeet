@@ -234,7 +234,6 @@ function PeerToPeer() {
         <InitiateCall callID={callID} createCall={handleCreateCall} />
       ) : null}
       <h2 className="text-left text-lg text-white ">Call ID: {callID}</h2>
-      <h2>3. Join a Call</h2>
 
       {role === 'callee' && showInputJoinCall ? (
         <InputJoinCall
