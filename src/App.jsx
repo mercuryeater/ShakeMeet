@@ -1,7 +1,12 @@
+import { useEffect } from 'react';
 import StartCall from './components/StartCall/StartCall';
 import JoinCall from './components/JoinCall/JoinCall';
 
 function App() {
+  useEffect(() => {
+    localStorage.clear();
+  }, []);
+
   return (
     <div className="flex flex-col gap-16 p-5 md:flex-row md:gap-4">
       <h1 className="m-10 w-fit text-center text-8xl font-bold text-sky-100 md:w-3/5">
