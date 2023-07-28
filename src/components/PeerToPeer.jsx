@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/media-has-caption */
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
@@ -13,8 +14,6 @@ function PeerToPeer() {
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
   const peerConnectionRef = useRef();
-  const localStreamRef = useRef();
-  const remoteStreamRef = useRef();
 
   const localIceCandidates = [];
 
@@ -24,8 +23,8 @@ function PeerToPeer() {
     startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
   }, []);
 
-  ////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////
+  /// /////////////////////////////////////////////////////////////
+  /// /////////////////////////////////////////////////////////////
 
   const handleCreateCall = async () => {
     const peerConnection = peerConnectionRef.current;
@@ -111,19 +110,14 @@ function PeerToPeer() {
     });
   };
 
-  const handleInputChange = (event) => {
-    setRemoteCallID(event.target.value);
-    console.log(remoteCallID);
-  };
-
-  ////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////
+  /// /////////////////////////////////////////////////////////////
+  /// /////////////////////////////////////////////////////////////
   const joinCallHandler = async () => {
     const peerConnection = peerConnectionRef.current;
     console.log(`en joinHandlcallID es: ${remoteCallID}`);
 
     try {
-      //traer documento para leer aqui el remote
+      // traer documento para leer aqui el remote
       const currentCall = await getCall(remoteCallID);
       const remoteDescription = new RTCSessionDescription(currentCall.offer);
       await peerConnection.setRemoteDescription(remoteDescription);
@@ -220,14 +214,18 @@ function PeerToPeer() {
 
   return (
     <>
-      <div style={{ display: 'flex' }}>
-        <span>
-          <h3 className="text-lg text-white">Local Stream</h3>
-          <video ref={localVideoRef} autoPlay />
+      <div className="flex flex-col md:flex-row">
+        <span className="relative grow">
+          <h3 className="absolute left-1 top-1 text-lg text-white">
+            Local Stream
+          </h3>
+          <video ref={localVideoRef} autoPlay controls className="w-full" />
         </span>
-        <span>
-          <h3 className="text-lg text-white">Remote Stream</h3>
-          <video ref={remoteVideoRef} autoPlay />
+        <span className="relative grow">
+          <h3 className="absolute left-1 top-1 text-lg text-white">
+            Remote Stream
+          </h3>
+          <video ref={localVideoRef} autoPlay controls className="w-full" />
         </span>
       </div>
       {role === 'caller' && showInitiateCall ? (
