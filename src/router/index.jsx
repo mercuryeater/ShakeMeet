@@ -4,7 +4,6 @@ import Root from '../layout/Root';
 import App from '../App';
 import PeerToPeer from '../components/PeerToPeer';
 import NotFound from '../pages/NotFound';
-import Call from '../components/Call/Call';
 
 const router = createBrowserRouter([
   // Aqui dentro se crean las rutas
@@ -21,10 +20,10 @@ const router = createBrowserRouter([
         path: '/call',
         element: <PeerToPeer />,
       },
-      {
-        path: '/about',
-        element: <Call />,
-      },
+      // {
+      //   path: '/about',
+      //   element: <App />,
+      // },
     ],
   },
 ]);

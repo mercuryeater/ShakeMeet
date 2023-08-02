@@ -1,6 +1,11 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { useRef, useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import {
+  BsFillVolumeMuteFill,
+  BsFillVolumeDownFill,
+  BsFillVolumeUpFill,
+} from 'react-icons/bs';
 import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
 import InitiateCall from './Call/InitiateCall/InitiateCall';
 import InputJoinCall from './Call/InputJoinCall/InputJoinCall';
@@ -212,22 +217,57 @@ function PeerToPeer() {
     );
   };
 
+  const volumeLevel = 'muted';
+
   return (
     <>
-      <div className="flex flex-col md:flex-row">
-        <span className="relative grow">
+      <main className="flex flex-col md:flex-row">
+        <div className="group relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
             Local Stream
           </h3>
-          <video ref={localVideoRef} autoPlay controls className="w-full" />
-        </span>
+          <div
+            className="absolute right-1 top-2 z-50 flex cursor-pointer
+           justify-center opacity-50 transition-opacity group-hover:opacity-100"
+          >
+            <div className="flex flex-col">
+              <button
+                type="button"
+                className=""
+                onClick={() => console.log('Mute clicked')}
+              >
+                <BsFillVolumeMuteFill
+                  className={volumeLevel === 'muted' ? 'block' : 'hidden'}
+                />
+                <BsFillVolumeDownFill
+                  className={volumeLevel === 'low' ? 'block' : 'hidden'}
+                />
+                <BsFillVolumeUpFill
+                  className={volumeLevel === 'high' ? 'block' : 'hidden'}
+                />
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="any"
+                className="w-0
+                hover:w-full "
+              />
+            </div>
+          </div>
+          <video ref={localVideoRef} autoPlay className="-z-10 w-full" />
+        </div>
+
         <span className="relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
             Remote Stream
           </h3>
-          <video ref={localVideoRef} autoPlay controls className="w-full" />
+          <div>
+            <video ref={localVideoRef} autoPlay className="w-full" />
+          </div>
         </span>
-      </div>
+      </main>
       {role === 'caller' && showInitiateCall ? (
         <InitiateCall callID={callID} createCall={handleCreateCall} />
       ) : null}
