@@ -6,6 +6,7 @@ import {
   BsFillVolumeDownFill,
   BsFillVolumeUpFill,
 } from 'react-icons/bs';
+import { CgMiniPlayer } from 'react-icons/cg';
 import { editCall, addToCalls, db, getCall } from '../firebase/firebase';
 import InitiateCall from './Call/InitiateCall/InitiateCall';
 import InputJoinCall from './Call/InputJoinCall/InputJoinCall';
@@ -33,38 +34,41 @@ function PeerToPeer() {
 
   useEffect(() => {
     console.log('se modifica local video ref');
-    if (localVideoRef.current) {
+    if (remoteVideoRef.current) {
       const handleVolumeChange = () => {
-        setVolume(localVideoRef.current.volume);
-        setIsMuted(localVideoRef.current.muted);
+        setVolume(remoteVideoRef.current.volume);
+        setIsMuted(remoteVideoRef.current.muted);
 
-        if (localVideoRef.current.volume > 0) {
-          localVideoRef.current.muted = false;
-          // setIsMuted(localVideoRef.current
+        if (remoteVideoRef.current.volume > 0) {
+          remoteVideoRef.current.muted = false;
+          // setIsMuted(remoteVideoRef.current
         }
 
-        if (localVideoRef.current.muted || localVideoRef.current.volume === 0) {
+        if (
+          remoteVideoRef.current.muted ||
+          remoteVideoRef.current.volume === 0
+        ) {
           setVolumeLevel('muted');
-        } else if (localVideoRef.current.volume >= 0.5) {
+        } else if (remoteVideoRef.current.volume >= 0.5) {
           setVolumeLevel('high');
         } else {
           setVolumeLevel('low');
         }
       };
-      localVideoRef.current.addEventListener(
+      remoteVideoRef.current.addEventListener(
         'volumechange',
         handleVolumeChange
       );
 
       // Eliminar el event listener al desmontar el componente
       return () => {
-        localVideoRef.current.removeEventListener(
+        remoteVideoRef.current.removeEventListener(
           'volumechange',
           handleVolumeChange
         );
       };
     }
-  }, [localVideoRef]);
+  }, [remoteVideoRef]);
 
   /// /////////////////////////////////////////////////////////////
   /// /////////////////////////////////////////////////////////////
@@ -258,7 +262,6 @@ function PeerToPeer() {
   // //////////////////////////////////////////////////////////////////
   // ///// VOLUME FUNCTIONS
   // //////////////////////////////////////////////////////////////////
-  // const volumeLevel = 'muted';
 
   const toggleMute = () => {
     if (localVideoRef.current) {
@@ -279,13 +282,13 @@ function PeerToPeer() {
 
   const onVolumeInputHandler = (event) => {
     const newVolume = event.target.value;
-    localVideoRef.current.volume = newVolume;
+    remoteVideoRef.current.volume = newVolume;
     setVolume(newVolume);
-    if (localVideoRef.current.muted && newVolume === 0) {
-      localVideoRef.current.muted = false;
+    if (remoteVideoRef.current.muted && newVolume === 0) {
+      remoteVideoRef.current.muted = false;
       setIsMuted(false);
-    } else if (!localVideoRef.current.muted && newVolume > 0) {
-      localVideoRef.current.muted = true;
+    } else if (!remoteVideoRef.current.muted && newVolume > 0) {
+      remoteVideoRef.current.muted = true;
       setIsMuted(true);
     }
   };
@@ -294,18 +297,29 @@ function PeerToPeer() {
     setVolume(e.target.volume);
   };
 
+  // //////////////////////////////////////////////////////////////////
+  // ///// MINI PLAYER FUNCTION
+  // //////////////////////////////////////////////////////////////////
+
+  const toggleMiniPlayer = () => {
+    remoteVideoRef.current.requestPictureInPicture();
+  };
+
   return (
     <>
       <main className="flex flex-col md:flex-row">
         <div className="relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
-            Local Stream
+            Remote Stream
           </h3>
           <div
             className="group absolute bottom-2 left-1 z-50 flex cursor-pointer
-           justify-center transition-opacity"
+           justify-center rounded-md bg-black/40 p-1 transition-opacity"
           >
-            <div className="flex gap-1 opacity-50 transition-all duration-500 group-hover:opacity-100">
+            <div
+              className="flex gap-1 text-xl opacity-50 transition-all
+            duration-500 group-hover:opacity-100"
+            >
               <button type="button" className="" onClick={toggleMute}>
                 <BsFillVolumeMuteFill
                   className={
@@ -336,22 +350,30 @@ function PeerToPeer() {
               />
             </div>
           </div>
+          <div
+            className="group absolute bottom-2 right-1 z-50 flex cursor-pointer
+           justify-center rounded-md  bg-black/40 p-1 text-xl"
+          >
+            <button type="button" onClick={toggleMiniPlayer}>
+              <CgMiniPlayer className="text-gray-100 opacity-50 transition-opacity hover:opacity-100" />
+            </button>
+          </div>
           <video
-            ref={localVideoRef}
+            ref={remoteVideoRef}
             autoPlay
             className="-z-10 w-full"
             onVolumeChange={handleVolume}
           />
         </div>
 
-        {/* <span className="relative grow">
+        <span className="relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
-            Remote Stream
+            Local Stream
           </h3>
           <div>
             <video ref={localVideoRef} autoPlay className="w-full" muted />
           </div>
-        </span> */}
+        </span>
       </main>
       {role === 'caller' && showInitiateCall ? (
         <InitiateCall callID={callID} createCall={handleCreateCall} />
