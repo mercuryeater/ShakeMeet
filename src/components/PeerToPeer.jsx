@@ -16,6 +16,9 @@ function PeerToPeer() {
   const [remoteCallID, setRemoteCallID] = useState();
   const [showInitiateCall, setShowInitiateCall] = useState(true);
   const [showInputJoinCall, setShowInputJoinCall] = useState(true);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState('high');
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
   const peerConnectionRef = useRef();
@@ -27,6 +30,41 @@ function PeerToPeer() {
   useEffect(() => {
     startUserCamera(localVideoRef, remoteVideoRef, peerConnectionRef);
   }, []);
+
+  useEffect(() => {
+    console.log('se modifica local video ref');
+    if (localVideoRef.current) {
+      const handleVolumeChange = () => {
+        setVolume(localVideoRef.current.volume);
+        setIsMuted(localVideoRef.current.muted);
+
+        if (localVideoRef.current.volume > 0) {
+          localVideoRef.current.muted = false;
+          // setIsMuted(localVideoRef.current
+        }
+
+        if (localVideoRef.current.muted || localVideoRef.current.volume === 0) {
+          setVolumeLevel('muted');
+        } else if (localVideoRef.current.volume >= 0.5) {
+          setVolumeLevel('high');
+        } else {
+          setVolumeLevel('low');
+        }
+      };
+      localVideoRef.current.addEventListener(
+        'volumechange',
+        handleVolumeChange
+      );
+
+      // Eliminar el event listener al desmontar el componente
+      return () => {
+        localVideoRef.current.removeEventListener(
+          'volumechange',
+          handleVolumeChange
+        );
+      };
+    }
+  }, [localVideoRef]);
 
   /// /////////////////////////////////////////////////////////////
   /// /////////////////////////////////////////////////////////////
@@ -217,33 +255,72 @@ function PeerToPeer() {
     );
   };
 
-  const volumeLevel = 'muted';
+  // //////////////////////////////////////////////////////////////////
+  // ///// VOLUME FUNCTIONS
+  // //////////////////////////////////////////////////////////////////
+  // const volumeLevel = 'muted';
+
+  const toggleMute = () => {
+    if (localVideoRef.current) {
+      localVideoRef.current.muted = !localVideoRef.current.muted;
+      setIsMuted(localVideoRef.current.muted);
+      if (localVideoRef.current.muted) {
+        setVolume(0);
+        localVideoRef.current.volume = 0;
+      } else {
+        // Assuming you have a way to get the previous non-muted volume value
+        // setVolume((previousVolume) =>
+        //   previousVolume === 0 ? 1 : previousVolume
+        // );
+        localVideoRef.current.volume = 0.5;
+      }
+    }
+  };
+
+  const onVolumeInputHandler = (event) => {
+    const newVolume = event.target.value;
+    localVideoRef.current.volume = newVolume;
+    setVolume(newVolume);
+    if (localVideoRef.current.muted && newVolume === 0) {
+      localVideoRef.current.muted = false;
+      setIsMuted(false);
+    } else if (!localVideoRef.current.muted && newVolume > 0) {
+      localVideoRef.current.muted = true;
+      setIsMuted(true);
+    }
+  };
+
+  const handleVolume = (e) => {
+    setVolume(e.target.volume);
+  };
 
   return (
     <>
       <main className="flex flex-col md:flex-row">
-        <div className="group relative grow">
+        <div className="relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
             Local Stream
           </h3>
           <div
-            className="absolute right-1 top-2 z-50 flex cursor-pointer
-           justify-center opacity-50 transition-opacity group-hover:opacity-100"
+            className="group absolute bottom-2 left-1 z-50 flex cursor-pointer
+           justify-center transition-opacity"
           >
-            <div className="flex flex-col">
-              <button
-                type="button"
-                className=""
-                onClick={() => console.log('Mute clicked')}
-              >
+            <div className="flex gap-1 opacity-50 transition-all duration-500 group-hover:opacity-100">
+              <button type="button" className="" onClick={toggleMute}>
                 <BsFillVolumeMuteFill
-                  className={volumeLevel === 'muted' ? 'block' : 'hidden'}
+                  className={
+                    volumeLevel === 'muted' ? 'block text-gray-100' : 'hidden'
+                  }
                 />
                 <BsFillVolumeDownFill
-                  className={volumeLevel === 'low' ? 'block' : 'hidden'}
+                  className={
+                    volumeLevel === 'low' ? 'block text-gray-100' : 'hidden'
+                  }
                 />
                 <BsFillVolumeUpFill
-                  className={volumeLevel === 'high' ? 'block' : 'hidden'}
+                  className={
+                    volumeLevel === 'high' ? 'block text-gray-100' : 'hidden'
+                  }
                 />
               </button>
               <input
@@ -251,22 +328,30 @@ function PeerToPeer() {
                 min="0"
                 max="1"
                 step="any"
-                className="w-0
-                hover:w-full "
+                value={volume}
+                className="hidden w-0 origin-left scale-x-0 opacity-0
+                transition-all group-hover:block group-hover:w-full
+                group-hover:scale-x-100 group-hover:opacity-100"
+                onInput={onVolumeInputHandler}
               />
             </div>
           </div>
-          <video ref={localVideoRef} autoPlay className="-z-10 w-full" />
+          <video
+            ref={localVideoRef}
+            autoPlay
+            className="-z-10 w-full"
+            onVolumeChange={handleVolume}
+          />
         </div>
 
-        <span className="relative grow">
+        {/* <span className="relative grow">
           <h3 className="absolute left-1 top-1 text-lg text-white">
             Remote Stream
           </h3>
           <div>
-            <video ref={localVideoRef} autoPlay className="w-full" />
+            <video ref={localVideoRef} autoPlay className="w-full" muted />
           </div>
-        </span>
+        </span> */}
       </main>
       {role === 'caller' && showInitiateCall ? (
         <InitiateCall callID={callID} createCall={handleCreateCall} />
