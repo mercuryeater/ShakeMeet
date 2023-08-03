@@ -60,12 +60,14 @@ function PeerToPeer() {
         handleVolumeChange
       );
 
-      // Eliminar el event listener al desmontar el componente
       return () => {
-        remoteVideoRef.current.removeEventListener(
-          'volumechange',
-          handleVolumeChange
-        );
+        // Check if remoteVideoRef.current is not null before removing the event listener
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.removeEventListener(
+            'volumechange',
+            handleVolumeChange
+          );
+        }
       };
     }
   }, [remoteVideoRef]);
@@ -271,10 +273,6 @@ function PeerToPeer() {
         setVolume(0);
         localVideoRef.current.volume = 0;
       } else {
-        // Assuming you have a way to get the previous non-muted volume value
-        // setVolume((previousVolume) =>
-        //   previousVolume === 0 ? 1 : previousVolume
-        // );
         localVideoRef.current.volume = 0.5;
       }
     }
@@ -313,7 +311,7 @@ function PeerToPeer() {
             Remote Stream
           </h3>
           <div
-            className="group absolute bottom-2 left-1 z-50 flex cursor-pointer
+            className="group absolute bottom-2 left-1 z-30 flex cursor-pointer
            justify-center rounded-md bg-black/40 p-1 transition-opacity"
           >
             <div
@@ -361,7 +359,7 @@ function PeerToPeer() {
           <video
             ref={remoteVideoRef}
             autoPlay
-            className="-z-10 w-full"
+            className="-z-0 w-full"
             onVolumeChange={handleVolume}
           />
         </div>

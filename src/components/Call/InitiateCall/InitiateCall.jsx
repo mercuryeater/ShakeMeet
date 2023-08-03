@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 function InitiateCall({ createCall }) {
   return (
     <div
-      className="absolute inset-0 z-10  flex flex-col
+      className="fixed inset-0 z-50  flex h-screen flex-col
       items-center justify-center gap-5 p-10 drop-shadow-lg backdrop-blur-sm"
     >
       <button
