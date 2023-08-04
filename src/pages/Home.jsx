@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import StartCall from './components/StartCall/StartCall';
-import JoinCall from './components/JoinCall/JoinCall';
+import StartCall from '../components/StartCall/StartCall';
+import JoinCall from '../components/JoinCall/JoinCall';
 
 function App() {
   useEffect(() => {

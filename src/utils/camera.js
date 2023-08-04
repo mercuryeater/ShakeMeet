@@ -23,6 +23,7 @@ export default async function startUserCamera(
   let localStream = null;
 
   let remoteStream = null;
+
   localStream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true },
     video: true,
